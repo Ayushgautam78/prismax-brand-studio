@@ -279,6 +279,102 @@ function initFabric() {
 
     canvas.on('object:scaling', updateConnections);
     canvas.on('mouse:up', () => clearSnapGuides());
+
+    // --- PC Zoom & Pan ---
+    canvas.on('mouse:wheel', function(opt) {
+        var delta = opt.e.deltaY;
+        var zoom = canvas.getZoom();
+        zoom *= 0.999 ** delta;
+        if (zoom > 20) zoom = 20;
+        if (zoom < 0.05) zoom = 0.05;
+        canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+        opt.e.preventDefault();
+        opt.e.stopPropagation();
+    });
+
+    let isPanning = false;
+    let lastPosX, lastPosY;
+    canvas.on('mouse:down', function(opt) {
+        var evt = opt.e;
+        if (evt.altKey || evt.button === 1 || window.isSpaceKeyDown) {
+            isPanning = true;
+            canvas.selection = false;
+            lastPosX = evt.clientX || (evt.touches ? evt.touches[0].clientX : 0);
+            lastPosY = evt.clientY || (evt.touches ? evt.touches[0].clientY : 0);
+        }
+    });
+    canvas.on('mouse:move', function(opt) {
+        if (isPanning) {
+            var e = opt.e;
+            var vpt = canvas.viewportTransform;
+            var clientX = e.clientX || (e.touches ? e.touches[0].clientX : lastPosX);
+            var clientY = e.clientY || (e.touches ? e.touches[0].clientY : lastPosY);
+            vpt[4] += clientX - lastPosX;
+            vpt[5] += clientY - lastPosY;
+            canvas.requestRenderAll();
+            lastPosX = clientX;
+            lastPosY = clientY;
+        }
+    });
+    canvas.on('mouse:up', function(opt) {
+        if (isPanning) {
+            canvas.setViewportTransform(canvas.viewportTransform);
+            isPanning = false;
+            canvas.selection = true;
+        }
+    });
+
+    // --- Mobile Pinch to Zoom & Pan ---
+    let touchHandler = { isPinching: false, initialDist: 0, initialZoom: 1, lastCenter: null };
+    canvas.upperCanvasEl.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            touchHandler.isPinching = true;
+            let dx = e.touches[0].clientX - e.touches[1].clientX;
+            let dy = e.touches[0].clientY - e.touches[1].clientY;
+            touchHandler.initialDist = Math.sqrt(dx * dx + dy * dy);
+            touchHandler.initialZoom = canvas.getZoom();
+            touchHandler.lastCenter = {
+                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+            };
+        }
+    }, {passive: false});
+
+    canvas.upperCanvasEl.addEventListener('touchmove', function(e) {
+        if (touchHandler.isPinching && e.touches.length === 2) {
+            e.preventDefault();
+            e.stopPropagation();
+            let dx = e.touches[0].clientX - e.touches[1].clientX;
+            let dy = e.touches[0].clientY - e.touches[1].clientY;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            
+            let zoom = touchHandler.initialZoom * (dist / touchHandler.initialDist);
+            if (zoom > 20) zoom = 20;
+            if (zoom < 0.05) zoom = 0.05;
+
+            let centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            let centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            
+            let rect = canvas.upperCanvasEl.getBoundingClientRect();
+            let point = { x: centerX - rect.left, y: centerY - rect.top };
+            
+            canvas.zoomToPoint(point, zoom);
+            
+            let vpt = canvas.viewportTransform;
+            vpt[4] += centerX - touchHandler.lastCenter.x;
+            vpt[5] += centerY - touchHandler.lastCenter.y;
+            canvas.requestRenderAll();
+            
+            touchHandler.lastCenter = { x: centerX, y: centerY };
+        }
+    }, {passive: false});
+
+    canvas.upperCanvasEl.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) {
+            touchHandler.isPinching = false;
+            touchHandler.lastCenter = null;
+        }
+    });
 }
 
 function handleResize() {
@@ -1174,8 +1270,9 @@ function duplicateSelected() {
     });
 }
 
-// Global Keyboard bindings (Ctrl+Z, Ctrl+Y, Delete, Ctrl+D)
+// Global Keyboard bindings (Ctrl+Z, Ctrl+Y, Delete, Ctrl+D, Space to Pan)
 document.addEventListener('keydown', (e) => {
+    if(e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') window.isSpaceKeyDown = true;
     if(e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
     if(e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
     if(e.ctrlKey && e.key === 'd') { e.preventDefault(); duplicateSelected(); }
@@ -1183,6 +1280,9 @@ document.addEventListener('keydown', (e) => {
         const t = e.target.tagName.toLowerCase();
         if(t !== 'input' && t !== 'textarea') deleteSelected();
     }
+});
+document.addEventListener('keyup', (e) => {
+    if(e.code === 'Space') window.isSpaceKeyDown = false;
 });
 
 function toggleGroup() {
