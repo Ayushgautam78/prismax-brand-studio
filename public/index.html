@@ -168,10 +168,17 @@
         <main id="workspace">
             <!-- Top Horizontal Bar (Outside Canvas) -->
             <div class="top-row-controls">
-                <div class="left-controls">
+                <div class="left-controls" style="display:flex; align-items:center; gap: 5px;">
                     <button id="btn_ratio_change" title="Change Canvas Ratio"><i class="fa-solid fa-crop"></i></button>
                     <button id="btn_undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
                     <button id="btn_redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+                    
+                    <!-- Zoom Controls -->
+                    <div style="display:flex; align-items:center; background:var(--bg-dark); border-radius:15px; border:1px solid var(--border-gold); padding:0 5px; margin-left: 10px;">
+                        <button id="btn_zoom_out" title="Zoom Out" style="background:transparent; border:none; color:var(--primary-gold); font-size: 0.8rem; padding: 5px;"><i class="fa-solid fa-minus"></i></button>
+                        <span id="zoom_display" style="color:var(--primary-gold); font-size:0.8rem; min-width: 45px; text-align:center; cursor:pointer;" title="Click to Reset Zoom">100%</span>
+                        <button id="btn_zoom_in" title="Zoom In" style="background:transparent; border:none; color:var(--primary-gold); font-size: 0.8rem; padding: 5px;"><i class="fa-solid fa-plus"></i></button>
+                    </div>
                 </div>
                 <div class="right-controls" id="layer_controls">
                     <button id="btn_duplicate" title="Duplicate (Ctrl+D)"><i class="fa-solid fa-clone"></i></button>
@@ -213,6 +220,15 @@
                 <p>Select an element to edit properties</p>
             </div>
             <div id="properties_editor" class="hidden custom-scrollbar">
+
+                <!-- Layering Controls for Mobile -->
+                <div class="prop-group mobile-only">
+                    <h4>Arrangement</h4>
+                    <div class="grid-2 mt-10">
+                        <button id="btn_prop_bring_front" class="gold-btn outline small"><i class="fa-solid fa-arrow-up-9-1"></i> Bring to Front</button>
+                        <button id="btn_prop_send_back" class="gold-btn outline small"><i class="fa-solid fa-arrow-down-9-1"></i> Send to Back</button>
+                    </div>
+                </div>
 
                 <!-- Common Transform Properties -->
                 <div class="prop-group">
