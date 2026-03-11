@@ -131,6 +131,8 @@ function initUI() {
     document.getElementById('btn_redo').addEventListener('click', redo);
     document.getElementById('btn_bring_front').addEventListener('click', () => bringLayer('front'));
     document.getElementById('btn_send_back').addEventListener('click', () => bringLayer('back'));
+    document.getElementById('btn_prop_bring_front')?.addEventListener('click', () => bringLayer('front'));
+    document.getElementById('btn_prop_send_back')?.addEventListener('click', () => bringLayer('back'));
     document.getElementById('btn_delete').addEventListener('click', deleteSelected);
     document.getElementById('btn_duplicate')?.addEventListener('click', duplicateSelected);
     
@@ -174,6 +176,28 @@ function initUI() {
                  updateRecentColorsUI();
             }
         });
+    });
+
+    // Zoom Controls
+    document.getElementById('btn_zoom_in')?.addEventListener('click', () => {
+        let zoom = canvas.getZoom() * 1.1;
+        if(zoom > 20) zoom = 20;
+        canvas.zoomToPoint({x: canvas.width/2, y: canvas.height/2}, zoom);
+        updateZoomDisplay();
+    });
+    
+    document.getElementById('btn_zoom_out')?.addEventListener('click', () => {
+        let zoom = canvas.getZoom() / 1.1;
+        if(zoom < 0.05) zoom = 0.05;
+        canvas.zoomToPoint({x: canvas.width/2, y: canvas.height/2}, zoom);
+        updateZoomDisplay();
+    });
+    
+    document.getElementById('zoom_display')?.addEventListener('click', () => {
+        // Reset Zoom & Pan
+        canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        resizeCanvas(false); 
+        updateZoomDisplay();
     });
 
     // Property Bindings
@@ -288,6 +312,7 @@ function initFabric() {
         if (zoom > 20) zoom = 20;
         if (zoom < 0.05) zoom = 0.05;
         canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+        updateZoomDisplay();
         opt.e.preventDefault();
         opt.e.stopPropagation();
     });
@@ -364,6 +389,7 @@ function initFabric() {
             vpt[4] += centerX - touchHandler.lastCenter.x;
             vpt[5] += centerY - touchHandler.lastCenter.y;
             canvas.requestRenderAll();
+            updateZoomDisplay();
             
             touchHandler.lastCenter = { x: centerX, y: centerY };
         }
@@ -375,6 +401,19 @@ function initFabric() {
             touchHandler.lastCenter = null;
         }
     });
+}
+
+function updateZoomDisplay() {
+    const display = document.getElementById('zoom_display');
+    if(display && canvas) {
+        // Calculate relative zoom based on the current fitted scale vs actual virtual format
+        const panelW = document.getElementById('workspace_inner').clientWidth;
+        const panelH = document.getElementById('workspace_inner').clientHeight;
+        const baseScale = Math.min((panelW - 40) / virtualFormat.w, (panelH - 40) / virtualFormat.h);
+        
+        const relativeZoom = Math.round((canvas.getZoom() / baseScale) * 100);
+        display.innerText = `${relativeZoom}%`;
+    }
 }
 
 function handleResize() {
@@ -400,6 +439,7 @@ function resizeCanvas(reset) {
 
     canvas.setDimensions({ width: actualW, height: actualH });
     canvas.setZoom(scale);
+    updateZoomDisplay();
 
     if(reset) {
         canvas.clear();
@@ -1347,14 +1387,26 @@ function redo() {
 // ============================
 function exportCanvas() {
     canvas.discardActiveObject();
+    
+    // Save current zoom and pan state to restore later
+    const originalZoom = canvas.getZoom();
+    const originalVpt = [...canvas.viewportTransform];
+    
+    // For a perfect 1:1 export, we must reset the viewport shift and zoom to default
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
     canvas.requestRenderAll();
     
-    // Create high-res unscaled export data
+    // Create high-res unscaled export data matching exact pixel dimensions
     const exportData = canvas.toDataURL({
         format: 'png',
         quality: 1,
-        multiplier: 1 / canvas.getZoom() // counteract zoom to get virtual logic 1:1 format size
+        multiplier: 1 // We are now at exactly 1:1 scale
     });
+
+    // Restore user's zoom and pan
+    canvas.setViewportTransform(originalVpt);
+    canvas.setZoom(originalZoom);
+    canvas.requestRenderAll();
 
     const timestamp = Date.now();
     const ratioStr = `${virtualFormat.w}x${virtualFormat.h}`;
