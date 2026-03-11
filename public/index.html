@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PrismaX Brand Studio</title>
+
+    <!-- Google Fonts for UI and Canvas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Amatic+SC&family=Anton&family=Architects+Daughter&family=Audiowide&family=Bebas+Neue&family=Caveat&family=Caveat+Brush&family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative&family=Coming+Soon&family=Cormorant+Garamond&family=Covered+By+Your+Grace&family=Dancing+Script&family=Fredoka+One&family=Gloria+Hallelujah&family=Gochi+Hand&family=Handlee&family=IM+Fell+English&family=Indie+Flower&family=Just+Another+Hand&family=Kalam&family=Libre+Baskerville&family=Lilita+One&family=Montserrat:wght@400;600;700&family=Nunito:wght@400;600;700&family=Orbitron&family=Oswald&family=Pacifico&family=Patrick+Hand&family=Playfair+Display&family=Poppins:wght@400;600;700&family=Quicksand:wght@400;600;700&family=Raleway:wght@400;600;700&family=Reenie+Beanie&family=Righteous&family=Rock+Salt&family=Satisfy&family=Shadows+Into+Light&display=swap"
+        rel="stylesheet">
+
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Fabric.js 5.3 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Background Particles -->
+    <div id="particles"></div>
+
+    <!-- Startup Ratio Modal -->
+    <div id="startup_modal" class="modal-overlay">
+        <div class="modal-content gold-theme">
+            <h1>PrismaX Studio</h1>
+            <p>Select your canvas ratio to begin</p>
+            <div class="ratio-grid">
+                <button class="ratio-btn" data-width="1080" data-height="1080">
+                    <div class="shape square"></div>1:1 (Square)
+                </button>
+                <button class="ratio-btn" data-width="1920" data-height="1080">
+                    <div class="shape landscape"></div>16:9 (Video)
+                </button>
+                <button class="ratio-btn" data-width="1080" data-height="1920">
+                    <div class="shape portrait"></div>9:16 (Story)
+                </button>
+                <button class="ratio-btn" data-width="1200" data-height="630">
+                    <div class="shape banner"></div>1.91:1 (Banner)
+                </button>
+            </div>
+            <div class="custom-ratio">
+                <input type="number" id="custom_w" placeholder="W" value="800">
+                <span style="color:var(--primary-gold)">x</span>
+                <input type="number" id="custom_h" placeholder="H" value="600">
+                <button id="btn_custom_ratio" class="gold-btn">Set Custom</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Wrapper -->
+    <div id="app" class="hidden">
+
+        <!-- Left Sidebar / Bottom Sheet Mobile -->
+        <aside id="left_sidebar" class="sidebar tools-sidebar">
+            <div class="panel-header mobile-only">
+                <div style="display:flex; gap: 15px; align-items:center;">
+                    <button class="close-sheet back-btn" style="font-size:1.2rem; padding:5px;"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3 id="mobile_tools_title" style="margin:0; font-size:1.2rem;">TOOLS</h3>
+                </div>
+                <button class="close-sheet" style="font-size:1.5rem; padding:5px;"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <h2 class="brand-title desktop-only">PRISMAX</h2>
+            <nav class="tool-nav desktop-only">
+                <button class="nav-tab active" data-target="panel_assets"><i class="fa-solid fa-gem"></i> Assets</button>
+                <button class="nav-tab" data-target="panel_text"><i class="fa-solid fa-font"></i> Text</button>
+                <button class="nav-tab" data-target="panel_bg"><i class="fa-solid fa-fill-drip"></i> Background</button>
+                <button class="nav-tab" data-target="panel_shapes"><i class="fa-solid fa-shapes"></i> Shapes</button>
+                <button class="nav-tab" data-target="panel_arrows"><i class="fa-solid fa-arrow-right-long"></i> Arrow</button>
+            </nav>
+            <div class="panel-container">
+                <!-- Assets Panel -->
+                <div id="panel_assets" class="panel active">
+                    <h3>Library</h3>
+                    <div class="tab-subnav">
+                        <button class="sub-tab active" data-sub="assets_off">Official</button>
+                        <button class="sub-tab" data-sub="assets_my">My Uploads</button>
+                    </div>
+                    <div id="assets_off" class="sub-panel active">
+                        <div id="brand_assets_grid" class="asset-grid"></div>
+                    </div>
+                    <div id="assets_my" class="sub-panel">
+                        <label class="gold-btn block-btn">
+                            <i class="fa-solid fa-upload"></i> Upload Image
+                            <input type="file" id="upload_my_asset" accept="image/png, image/jpeg, image/svg+xml"
+                                hidden>
+                        </label>
+                        <div id="my_assets_grid" class="asset-grid mt-10"></div>
+                    </div>
+                </div>
+
+                <!-- Text Panel -->
+                <div id="panel_text" class="panel">
+                    <h3>Text Tool</h3>
+                    <div class="grid-3 mb-15">
+                        <button id="btn_add_heading" class="gold-btn" style="font-size:0.9rem; padding:10px 5px" title="Heading">H1</button>
+                        <button id="btn_add_subheading" class="gold-btn outline" style="font-size:0.8rem; padding:10px 5px" title="Subheading">H2</button>
+                        <button id="btn_add_body" class="gold-btn outline" style="font-size:0.8rem; padding:10px 5px" title="Body Text">Body</button>
+                    </div>
+                    <div class="font-search">
+                        <input type="text" id="font_search_input" placeholder="Search fonts...">
+                    </div>
+                    <label class="gold-btn block-btn mb-15 outline">
+                        <i class="fa-solid fa-upload"></i> Upload Extra Font
+                        <input type="file" id="upload_own_font" accept=".ttf,.otf" hidden>
+                    </label>
+                    <div id="font_list" class="font-list custom-scrollbar"></div>
+                </div>
+
+                <!-- Background Panel -->
+                <div id="panel_bg" class="panel">
+                    <h3>Canvas Background</h3>
+                    <div class="bg-section">
+                        <h4>Solid Colors</h4>
+                        <div class="color-grid" id="bg_solid_grid"></div>
+                    </div>
+                    <div class="bg-section">
+                        <h4>Gradients</h4>
+                        <div class="gradient-grid" id="bg_grad_grid"></div>
+                    </div>
+                    <div class="bg-section">
+                        <label class="gold-btn block-btn mb-10"><i class="fa-solid fa-images"></i> Upload Image
+                            <input type="file" id="bg_image_upload" accept="image/*" hidden>
+                        </label>
+                        <button id="btn_remove_bg" class="gold-btn block-btn danger-outline"><i
+                                class="fa-solid fa-eraser"></i> Clear Background</button>
+                    </div>
+                </div>
+
+                <!-- Shapes Panel -->
+                <div id="panel_shapes" class="panel">
+                    <h3>Shapes</h3>
+                    <div class="bg-section mt-10">
+                        <div class="grid-3 mb-10 mt-10">
+                            <button id="btn_add_rect" class="gold-btn outline" title="Rectangle"><i class="fa-solid fa-square"></i></button>
+                            <button id="btn_add_circle" class="gold-btn outline" title="Ellipse"><i class="fa-solid fa-circle"></i></button>
+                            <button id="btn_add_diamond" class="gold-btn outline" title="Diamond"><i class="fa-solid fa-square" style="transform: rotate(45deg);"></i></button>
+                            <button id="btn_add_triangle" class="gold-btn outline" title="Triangle"><i class="fa-solid fa-caret-up"></i></button>
+                            <button id="btn_add_hexagon" class="gold-btn outline" title="Hexagon"><i class="fa-solid fa-cube"></i></button>
+                            <button id="btn_add_star" class="gold-btn outline" title="Star"><i class="fa-solid fa-star"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arrow Panel -->
+                <div id="panel_arrows" class="panel">
+                    <h3>Arrow</h3>
+                    <div class="config-row mt-10">
+                        <div class="grid-2 mt-10">
+                            <button id="btn_add_free_arrow" class="gold-btn outline" style="font-size: 0.8rem;"><i class="fa-solid fa-arrow-right-long"></i> Free Arrow</button>
+                            <button id="btn_add_arrow" class="gold-btn outline" style="font-size: 0.8rem;"><i class="fa-solid fa-link"></i> Smart Arrow</button>
+                        </div>
+                    </div>
+                    <p class="helper-text mt-10" style="font-size: 0.8rem; opacity: 0.7;">Tap 'Smart Arrow' then tap two shapes to connect them.</p>
+                </div>
+            </div>
+
+            <button class="nav-tab export-btn" id="btn_top_export"><i class="fa-solid fa-download"></i> Export</button>
+        </aside>
+
+        <!-- Canvas Area -->
+        <main id="workspace">
+            <!-- Top Horizontal Bar (Outside Canvas) -->
+            <div class="top-row-controls">
+                <div class="left-controls">
+                    <button id="btn_ratio_change" title="Change Canvas Ratio"><i class="fa-solid fa-crop"></i></button>
+                    <button id="btn_undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button id="btn_redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                <div class="right-controls" id="layer_controls">
+                    <button id="btn_duplicate" title="Duplicate (Ctrl+D)"><i class="fa-solid fa-clone"></i></button>
+                    <button id="btn_bring_front" title="Bring to Front"><i class="fa-solid fa-arrow-up-9-1"></i></button>
+                    <button id="btn_send_back" title="Send to Back"><i class="fa-solid fa-arrow-down-9-1"></i></button>
+                    <button id="btn_group" title="Group/Ungroup"><i class="fa-solid fa-object-group"></i></button>
+                    <button id="btn_delete" class="danger-text" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+
+            <!-- Mobile Top Horizontal Tabs -->
+            <nav id="mobile_tabs" class="mobile-tabs mobile-only">
+                <button class="nav-tab active" data-target="panel_assets"><i class="fa-solid fa-gem"></i> Assets</button>
+                <button class="nav-tab" data-target="panel_text"><i class="fa-solid fa-font"></i> Text</button>
+                <button class="nav-tab" data-target="panel_shapes"><i class="fa-solid fa-shapes"></i> Shapes</button>
+                <button class="nav-tab" data-target="panel_arrows"><i class="fa-solid fa-arrow-right-long"></i> Arrow</button>
+                <button class="nav-tab" data-target="panel_bg"><i class="fa-solid fa-fill-drip"></i> BG</button>
+                <button class="nav-tab" data-target="panel_props"><i class="fa-solid fa-sliders"></i> Edit</button>
+                <button class="nav-tab" id="btn_mobile_export"><i class="fa-solid fa-download"></i> Export</button>
+            </nav>
+
+            <div id="workspace_inner">
+                <div id="canvas_container">
+                    <canvas id="c"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right / Bottom Sheet Properties Panel -->
+        <aside id="right_sidebar" class="sidebar props-sidebar">
+            <div class="panel-header mobile-only">
+                <div style="display:flex; gap: 15px; align-items:center;">
+                    <button class="close-sheet back-btn" style="font-size:1.2rem; padding:5px;"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3 style="margin:0; font-size:1.2rem;">EDIT</h3>
+                </div>
+                <button class="close-sheet" style="font-size:1.5rem; padding:5px;"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div id="properties_empty" class="empty-state">
+                <p>Select an element to edit properties</p>
+            </div>
+            <div id="properties_editor" class="hidden custom-scrollbar">
+
+                <!-- Common Transform Properties -->
+                <div class="prop-group">
+                    <h4>Transform</h4>
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>X</label>
+                            <input type="number" id="prop_x">
+                        </div>
+                        <div class="input-group">
+                            <label>Y</label>
+                            <input type="number" id="prop_y">
+                        </div>
+                        <div class="input-group">
+                            <label>W</label>
+                            <input type="number" id="prop_w">
+                        </div>
+                        <div class="input-group">
+                            <label>H</label>
+                            <input type="number" id="prop_h">
+                        </div>
+                        <div class="input-group full-width">
+                            <label><input type="checkbox" id="prop_lock_ratio"> Lock Aspect Ratio</label>
+                        </div>
+                        <div class="input-group">
+                            <label>Rotate &deg;</label>
+                            <input type="number" id="prop_angle">
+                        </div>
+                        <div class="input-group full-width">
+                            <label>Opacity %</label>
+                            <input type="range" id="prop_opacity_slider" min="0" max="100" value="100">
+                            <input type="number" id="prop_opacity_num" class="small-num" value="100" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="prop-group">
+                    <h4>Flip</h4>
+                    <div class="grid-2">
+                        <button id="btn_flip_x" class="gold-btn small"><i
+                                class="fa-solid fa-arrows-left-right"></i></button>
+                        <button id="btn_flip_y" class="gold-btn small"><i
+                                class="fa-solid fa-arrows-up-down"></i></button>
+                    </div>
+                </div>
+
+                <!-- Global Effects Properties -->
+                <div class="prop-group">
+                    <h4>Effects & Shadows</h4>
+                    <div class="input-group full-width">
+                        <label>Shadow Color</label>
+                        <div style="display: flex; gap: 5px;">
+                             <input type="color" id="prop_shadow_color" value="#000000" style="flex:1;">
+                             <button id="btn_clear_shadow" class="gold-btn small" title="Remove Shadow"><i class="fa-solid fa-ban"></i></button>
+                        </div>
+                        <div class="recent-colors-container" data-target="prop_shadow_color"></div>
+                    </div>
+                    <div class="input-group full-width">
+                        <label>Blur Intensity</label>
+                        <input type="range" id="prop_shadow_blur" min="0" max="100" value="10">
+                    </div>
+                    <div class="grid-2">
+                         <div class="input-group">
+                             <label>Offset X</label>
+                             <input type="number" id="prop_shadow_offset_x" value="5">
+                         </div>
+                         <div class="input-group">
+                             <label>Offset Y</label>
+                             <input type="number" id="prop_shadow_offset_y" value="5">
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Shape Specific Properties -->
+                <div id="shape_properties" class="prop-group hidden">
+                    <h4>Shape Styling</h4>
+                    <div class="input-group full-width">
+                        <label>Fill Color</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="color" id="prop_shape_fill" value="#000000" style="flex:1;">
+                            <button id="btn_clear_shape_fill" class="gold-btn small" title="Make Transparent"><i class="fa-solid fa-ban"></i></button>
+                        </div>
+                        <div class="recent-colors-container" data-target="prop_shape_fill"></div>
+                    </div>
+                    <div class="input-group full-width">
+                        <label>Border Color</label>
+                        <input type="color" id="prop_shape_stroke" value="#D4AF37">
+                        <div class="recent-colors-container" data-target="prop_shape_stroke"></div>
+                    </div>
+                </div>
+
+                <!-- Text Specific Properties -->
+                <div id="text_properties" class="prop-group hidden">
+                    <h4>Text Styles</h4>
+                    <div class="grid-3 mb-10">
+                        <button id="btn_text_bold" class="icon-toggle"><i class="fa-solid fa-bold"></i></button>
+                        <button id="btn_text_italic" class="icon-toggle"><i class="fa-solid fa-italic"></i></button>
+                        <button id="btn_text_underline" class="icon-toggle"><i
+                                class="fa-solid fa-underline"></i></button>
+
+                        <button id="btn_align_left" class="icon-toggle align-btn"><i
+                                class="fa-solid fa-align-left"></i></button>
+                        <button id="btn_align_center" class="icon-toggle align-btn"><i
+                                class="fa-solid fa-align-center"></i></button>
+                        <button id="btn_align_right" class="icon-toggle align-btn"><i
+                                class="fa-solid fa-align-right"></i></button>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Font Size</label>
+                        <input type="range" id="prop_fontsize_slider" min="10" max="300" value="40">
+                        <input type="number" id="prop_fontsize_num" class="small-num" value="40">
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Font Color</label>
+                        <input type="color" id="prop_textcolor" value="#D4AF37">
+                        <div class="recent-colors-container" data-target="prop_textcolor"></div>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Text Highlight.</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="color" id="prop_textbg" value="#000000" style="flex:1;">
+                            <button id="btn_clear_textbg" class="gold-btn small" title="Make Transparent"><i class="fa-solid fa-times"></i></button>
+                        </div>
+                        <div class="recent-colors-container" data-target="prop_textbg"></div>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Letter Spacing</label>
+                        <input type="range" id="prop_charspacing" min="-100" max="1000" value="0">
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Line Height</label>
+                        <input type="range" id="prop_lineheight" min="0.5" max="3" step="0.1" value="1.16">
+                    </div>
+
+                    <div class="input-group full-width" style="display: none;">
+                        <label><input type="checkbox" id="prop_textshadow"> Legacy Text Shadow</label>
+                    </div>
+                </div>
+
+                <!-- Arrow / Line Properties -->
+                <div id="arrow_properties" class="prop-group hidden">
+                    <h4>Arrow Styles</h4>
+                    <div class="input-group full-width">
+                        <label>Color</label>
+                        <input type="color" id="prop_arrow_color" value="#D4AF37">
+                        <div class="recent-colors-container" data-target="prop_arrow_color"></div>
+                    </div>
+                    <div class="input-group full-width">
+                        <label>Thickness</label>
+                        <input type="range" id="prop_arrow_width" min="1" max="50" value="4">
+                    </div>
+                    <div class="input-group full-width">
+                        <label>Style</label>
+                        <select id="prop_arrow_style">
+                            <option value="straight">Straight</option>
+                            <option value="curved">Curved</option>
+                            <option value="elbow">Elbow (90°)</option>
+                        </select>
+                    </div>
+                    <div class="input-group full-width">
+                        <label>Start Head</label>
+                        <select id="prop_arrow_head1">
+                            <option value="none">None</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="circle">Circle</option>
+                            <option value="open">Open</option>
+                        </select>
+                    </div>
+                    <div class="input-group full-width">
+                        <label>End Head</label>
+                        <select id="prop_arrow_head2">
+                            <option value="triangle">Triangle</option>
+                            <option value="circle">Circle</option>
+                            <option value="open">Open</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
+```
