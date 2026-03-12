@@ -116,9 +116,9 @@ function initUI() {
         });
     });
 
-    // Export Binding
-    document.getElementById('btn_top_export').addEventListener('click', exportCanvas);
-    document.getElementById('btn_mobile_export').addEventListener('click', exportCanvas);
+    // Download Binding
+    document.getElementById('btn_top_download').addEventListener('click', downloadCanvas);
+    document.getElementById('btn_mobile_download').addEventListener('click', downloadCanvas);
 
     // Tools
     document.getElementById('btn_add_heading')?.addEventListener('click', () => addText('h1'));
@@ -306,11 +306,18 @@ function initFabric() {
 
     // --- PC Zoom & Pan ---
     canvas.on('mouse:wheel', function(opt) {
+        const panelW = document.getElementById('workspace_inner').clientWidth;
+        const panelH = document.getElementById('workspace_inner').clientHeight;
+        const baseScale = Math.min((panelW - 40) / virtualFormat.w, (panelH - 40) / virtualFormat.h);
+
         var delta = opt.e.deltaY;
         var zoom = canvas.getZoom();
         zoom *= 0.999 ** delta;
-        if (zoom > 20) zoom = 20;
-        if (zoom < 0.05) zoom = 0.05;
+        
+        // Constraints
+        if (zoom < baseScale) zoom = baseScale; // 100% (Fit) is the minimum zoom out
+        if (zoom > baseScale * 25) zoom = baseScale * 25; // 25x is the limit
+        
         canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
         updateZoomDisplay();
         opt.e.preventDefault();
@@ -373,9 +380,15 @@ function initFabric() {
             let dy = e.touches[0].clientY - e.touches[1].clientY;
             let dist = Math.sqrt(dx * dx + dy * dy);
             
+            const panelW = document.getElementById('workspace_inner').clientWidth;
+            const panelH = document.getElementById('workspace_inner').clientHeight;
+            const baseScale = Math.min((panelW - 40) / virtualFormat.w, (panelH - 40) / virtualFormat.h);
+
             let zoom = touchHandler.initialZoom * (dist / touchHandler.initialDist);
-            if (zoom > 20) zoom = 20;
-            if (zoom < 0.05) zoom = 0.05;
+            
+            // Constraints
+            if (zoom < baseScale) zoom = baseScale;
+            if (zoom > baseScale * 25) zoom = baseScale * 25;
 
             let centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
             let centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
@@ -740,10 +753,10 @@ function bindPropertiesPanel() {
         if(!el) return;
         el.addEventListener('input', () => {
             const active = canvas.getActiveObject();
-            if(!active) return;
+            if(!active || el.value === "") return; // Fix jumping bug: don't update if input is empty
             
-            let val = el.value;
-            if(isNum) val = parseFloat(val);
+            let val = parseFloat(el.value);
+            if(isNaN(val)) return;
             
             if(id === 'prop_opacity') val = val/100;
             
@@ -1385,51 +1398,51 @@ function redo() {
 // ============================
 // EXPORT
 // ============================
-function exportCanvas() {
+// DOWNLOAD
+// ============================
+function downloadCanvas() {
+    // 1. Clear selection for a clean image
     canvas.discardActiveObject();
     
-    // Save current zoom and pan state to restore later
+    // 2. Save current state (Responsive size, Zoom, Pan)
+    const originalWidth = canvas.width;
+    const originalHeight = canvas.height;
     const originalZoom = canvas.getZoom();
     const originalVpt = [...canvas.viewportTransform];
     
-    // For a perfect 1:1 export, we must reset the viewport shift and zoom to default
+    // 3. Temporarily Switch to "Master" Virtual Resolution
+    // This is the CRITICAL fix: we must scale the canvas up to its true pixel dimensions
+    // so that the exported image contains the full design, not just the shrunk preview.
+    canvas.setDimensions({ width: virtualFormat.w, height: virtualFormat.h });
     canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    canvas.setZoom(1);
     canvas.requestRenderAll();
     
-    // Create high-res unscaled export data matching exact pixel dimensions
+    // 4. Generate the image at 1:1 scale
     const exportData = canvas.toDataURL({
         format: 'png',
         quality: 1,
-        multiplier: 1 // We are now at exactly 1:1 scale
+        multiplier: 1
     });
 
-    // Restore user's zoom and pan
+    // 5. Restore user's view (Responsive size, Zoom, Pan)
+    canvas.setDimensions({ width: originalWidth, height: originalHeight });
     canvas.setViewportTransform(originalVpt);
     canvas.setZoom(originalZoom);
     canvas.requestRenderAll();
 
+    // 6. Trigger Download
     const timestamp = Date.now();
     const ratioStr = `${virtualFormat.w}x${virtualFormat.h}`;
     const filename = `prismax-${ratioStr}-${timestamp}.png`;
 
-    if (isMobile && navigator.share) {
-        // Convert base64 to File object using modern fetch approach
-        fetch(exportData)
-            .then(res => res.blob())
-            .then(blob => {
-                const file = new File([blob], filename, { type: 'image/png' });
-                navigator.share({
-                    title: 'PrismaX Design',
-                    files: [file]
-                }).catch(console.error);
-            });
-    } else {
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = exportData;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-    showToast("Export Successful!");
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = exportData;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast("Download Successful!");
 }
+
